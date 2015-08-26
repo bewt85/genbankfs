@@ -1,0 +1,6 @@
+data/
+tmp_data/
+*.pyc
+*~
+*.swp
+venv
