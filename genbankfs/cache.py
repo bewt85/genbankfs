@@ -1,0 +1,2 @@
+class GenbankCache(object):
+  pass
