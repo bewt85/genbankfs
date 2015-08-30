@@ -91,12 +91,22 @@ class GenbankFuse(Operations):
     return PathParseResult(None, 'default', [], query)
 
   def readdir(self, path, fh):
-    print path
-    if path == '/accession':
-      return ['.', '..'] + self.searcher.list('accession')
-    return ['.', '..', 'genus', 'taxid', 'species_taxid', 'accession']
+    parse_result = self.parse_path(path)
+    if parse_result.file_path:
+      return [path]
+    elif parse_result.dir_name == 'default':
+      return ['.', '..', 'genus', 'taxid', 'species', 'accession']
+    else:
+      return ['.', '..'] + self.searcher.list(parse_result.dir_name,
+                                              **parse_result.query)
 
   def getattr(self, path, fh=None):
-    return dict(st_mode=(S_IFDIR | 365), st_nlink=2,
-                st_size=0, st_ctime=time(), st_mtime=time(),
-                st_atime=time())
+    parse_result = self.parse_path(path)
+    if parse_result.file_path:
+      return dict(st_mode=(S_IFREG | 0444), st_nlink=1,
+                  st_size=0, st_ctime=time(), st_mtime=time(),
+                  st_atime=time())
+    else:
+      return dict(st_mode=(S_IFDIR | 0755), st_nlink=2,
+                  st_size=0, st_ctime=time(), st_mtime=time(),
+                  st_atime=time())
