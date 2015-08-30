@@ -91,6 +91,8 @@ class GenbankFuse(Operations):
     parse_result = self.parse_path(path)
     if parse_result.file_path:
       return [path]
+    elif 'accession' in parse_result.query:
+      return ['.', '..', 'README.txt']
     elif parse_result.dir_name == 'default':
       return ['.', '..'] + self.searcher.folders
     else:
