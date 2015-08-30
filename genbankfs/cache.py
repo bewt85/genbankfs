@@ -8,7 +8,7 @@ import urllib
 from urlparse import urlparse
 from Queue import Queue, Full, Empty
 from StringIO import StringIO
-from threading import Lock, Thread
+from threading import Lock, Thread, Event
 
 # Set download timeout
 socket.setdefaulttimeout(600)
@@ -106,6 +106,7 @@ class GenbankCache(object):
       'timeout': create_warning_file(self.root_dir, 'download_timeout_warning', download_timeout_warning),
       'error': create_warning_file(self.root_dir, 'download_error', download_error)
     }
+    self.download_locks = {}
 
   def open(self, path, flags):
     cache_path = os.path.join(self.root_dir, path)
@@ -118,12 +119,27 @@ class GenbankCache(object):
       origin_path = self.lookup(path)
     except:
       raise IOError('%s not found and not available for download') % path
-    return self.download(cache_path, origin_path, flags)
+    download_lock, download_complete_event = self.download_locks.setdefault(origin_path, (Lock(), Event()))
+    if download_lock.acquire(False):
+      download_fn = self.download(cache_path, origin_path, flags)
+      download_complete_event.set()
+      del self.download_locks[origin_path]
+      download_lock.release()
+    else:
+      download_fn = self.wait_for_download(cache_path, flags, download_complete_event)
+    return download_fn
 
   def read(self, size, offset, fh):
     with self.rwlock:
       os.lseek(fh, offset, 0)
       return os.read(fh, size)
+
+  def wait_for_download(self, cache_path, flags, download_complete_event, timeout=600):
+    download_complete_event.wait(timeout=timeout)
+    try:
+      return os.open(cache_path, flags)
+    except OSError:
+      return os.open(self.warning_files['timeout'], flags)
 
   def download(self, cache_path, origin_path, flags, timeout=600):
     result = Queue()
