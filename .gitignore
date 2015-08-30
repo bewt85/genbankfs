@@ -6,3 +6,4 @@ tmp_data/
 venv
 *.egg-info
 .DS_Store
+.eggs/

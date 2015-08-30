@@ -13,6 +13,10 @@ setup(
     'numpy>=1.9.2',
     'pandas>=0.16.2'
   ],
+  test_suite='genbankfs.tests',
+  tests_require=[
+    'mock'
+  ],
   packages=['genbankfs'],
   scripts=['scripts/genbankfs-start']
 )
