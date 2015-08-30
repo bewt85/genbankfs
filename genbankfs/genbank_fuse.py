@@ -17,12 +17,9 @@ class PathParseResult(namedtuple("PathParseResult", "file_path dir_name path_lis
 class GenbankFuse(Operations):
   def __init__(self, searcher):
     self.searcher = searcher
-    self.parsers = {
-      'accession': self._parse_accession,
-      'taxid': self._parser_builder('taxid'),
-      'species': self._parser_builder('species'),
-      'genus': self._parser_builder('genus')
-    }
+    self.parsers = {folder: self._parser_builder(folder)
+                      for folder in self.searcher.folders}
+    self.parsers['accession'] = self._parse_accession
     super(GenbankFuse, self).__init__()
 
   def parse_path(self, path, query=None):
@@ -95,7 +92,7 @@ class GenbankFuse(Operations):
     if parse_result.file_path:
       return [path]
     elif parse_result.dir_name == 'default':
-      return ['.', '..', 'genus', 'taxid', 'species', 'accession']
+      return ['.', '..'] + self.searcher.folders
     else:
       return ['.', '..'] + self.searcher.list(parse_result.dir_name,
                                               **parse_result.query)
