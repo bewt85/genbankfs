@@ -89,6 +89,15 @@ Please try again later
 """
 
 class GenbankCache(object):
+  """Create a local cache of files from Genbank
+
+  Use this to open files which are in Genbank.  If there's an issue,
+  it returns a file with an error message.
+
+  It avoids downloading the same file multiple times and uses threading
+  to control the number of concurent downloads.  It also has a download
+  queue to help save you if you accidentally make a request which would
+  download all of Genbank at once"""
   def __init__(self, root_dir, lookup_func, max_queue=100, concurent_downloads=2):
     self.lookup = lookup_func
     self.max_queue = max_queue
@@ -109,6 +118,12 @@ class GenbankCache(object):
     self.download_locks = {}
 
   def open(self, path, flags):
+    """Returns a file number for a given path
+
+    If the path is not in the cache, it uses a lookup function to find the
+    Genbank URL and tries to download it.  If another thread is already
+    downloading the file, it waits patiently rather than also requesting
+    the same file."""
     cache_path = os.path.join(self.root_dir, path)
     self._check_in_root(cache_path)
     try:
@@ -135,6 +150,9 @@ class GenbankCache(object):
       return os.read(fh, size)
 
   def wait_for_download(self, cache_path, flags, download_complete_event, timeout=600):
+    """Waits for another thread to finish downloading a file
+
+    Returns an error file if this takes too long"""
     download_complete_event.wait(timeout=timeout)
     try:
       return os.open(cache_path, flags)
@@ -142,6 +160,13 @@ class GenbankCache(object):
       return os.open(self.warning_files['timeout'], flags)
 
   def download(self, cache_path, origin_path, flags, timeout=600):
+    """Downloads a file from Genbank
+
+    Downloads are queued for the download threads to deal with them.
+    If the download takes too long, it returns a warning file but the
+    file may still be downloaded in due course.  If it looks like
+    too many files have been queued for download at once, it returns
+    a different error."""
     result = Queue()
     try:
       self.download_queue.put_nowait((cache_path, origin_path, flags, result))
