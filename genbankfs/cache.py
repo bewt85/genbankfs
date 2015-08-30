@@ -1,8 +1,11 @@
 import hashlib
 import os
+import shutil
 import socket
+import tempfile
 import urllib
 
+from urlparse import urlparse
 from Queue import Queue, Full, Empty
 from StringIO import StringIO
 from threading import Lock, Thread
@@ -20,12 +23,34 @@ class DownloadWithExceptions(urllib.FancyURLopener):
   http_error_403 = error
   http_error_404 = error
 
+  def retrieve_tempfile(self, url, temp_dir, *args, **kwargs):
+    try:
+      temp_file = tempfile.NamedTemporaryFile(mode='w',
+                                              prefix=self._prefix_from_url(url),
+                                              suffix='.tmp',
+                                              dir=temp_dir,
+                                              delete=True)
+    except OSError:
+      os.makedirs(temp_dir, 0755)
+      temp_file = tempfile.NamedTemporaryFile(mode='w',
+                                              prefix=self._prefix_from_url(url),
+                                              suffix='.tmp',
+                                              dir=temp_dir,
+                                              delete=True)
+    (filename, status) = self.retrieve(url, temp_file.name)
+    return (temp_file, status)
+
+  def _prefix_from_url(self, url):
+    url_path = urlparse(url).path
+    prefix = url_path.split('/')[-1]
+    return prefix + '_'
+
 def create_warning_file(root_dir, filename_prefix, message):
   message_digest = hashlib.md5(message).hexdigest()
   file_path = os.path.join(root_dir, 'tmp', "%s_%s.tmp" % (filename_prefix,
                                                            message_digest))
   if not os.path.isdir(os.path.join(root_dir, 'tmp')):
-    os.mkdir(os.path.join(root_dir, 'tmp'), 0755)
+    os.makedirs(os.path.join(root_dir, 'tmp'), 0755)
   if not os.path.isfile(file_path):
     with open(file_path, 'w') as f:
       f.write(message)
@@ -75,7 +100,6 @@ class GenbankCache(object):
     for thread in self.threads:
       thread.daemon = True
       thread.start()
-    # TODO: create root dir if missing
     self.warning_files = {
       'queue': create_warning_file(self.root_dir, 'download_queue_warning',
                                    download_queue_warning.format(max_downloads=self.max_queue)),
@@ -86,7 +110,6 @@ class GenbankCache(object):
   def open(self, path, flags):
     cache_path = os.path.join(self.root_dir, path)
     self._check_in_root(cache_path)
-    # TODO: what if path includes a directory which doesn't exist?
     try:
       return os.open(cache_path, flags)
     except OSError:
@@ -115,17 +138,48 @@ class GenbankCache(object):
 
   def _download_queued(self, queue):
     downloader = DownloadWithExceptions()
+    download_staging_dir = os.path.join(self.root_dir, 'tmp')
     while True:
       cache_path, origin_path, flags, result = queue.get()
+
+      # Double check it's not in the cache
       try:
-        # TODO: what if it was downloaded since it was originally queued?
-        # TODO: what if the target directory doesn't exist?
-        download_path, status = downloader.retrieve(origin_path, cache_path)
-        result.put(os.open(download_path, flags))
-      except:
+        result.put(os.open(cache_path, flags))
+      except OSError:
+        pass # File doesn't exist so we should get started downloading it
+      else:
+        continue # Someone else downloaded it since this was queued
+
+      # Download the file to a temporary location
+      try:
+        download_tempfile, status = downloader.retrieve_tempfile(origin_path,
+                                                                 download_staging_dir)
+      except DownloadError:
         result.put(os.open(self.warning_files['error'], flags))
-      finally:
         queue.task_done()
+        del download_tempfile
+        continue
+
+      # If the download was ok, move it where we need it
+      try:
+        shutil.move(download_tempfile.name, cache_path)
+        result_fn = os.open(cache_path, flags)
+      except IOError:
+        intended_dir = os.path.dirname(os.path.realpath(cache_path))
+        os.makedirs(intended_dir, mode=0755)
+        shutil.move(download_tempfile.name, cache_path)
+        result_fn = os.open(cache_path, flags)
+      except:
+        result_fn = os.open(self.warning_files['error'], flags)
+
+      result.put(result_fn)
+      queue.task_done()
+
+      # Delete the tempfile (this should happen anyway)
+      try:
+        del download_tempfile
+      except OSError:
+        pass # If it was moved, this will fail but that's ok
 
   def _check_in_root(self, path):
     if not os.path.realpath(path).startswith(self.root_dir):
