@@ -152,6 +152,7 @@ class GenbankCache(object):
 
       # Download the file to a temporary location
       try:
+        urllib.urlcleanup()
         download_tempfile, status = downloader.retrieve_tempfile(origin_path,
                                                                  download_staging_dir)
       except DownloadError:
