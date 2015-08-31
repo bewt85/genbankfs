@@ -1,3 +1,4 @@
+import logging
 import os
 
 from collections import namedtuple
@@ -6,7 +7,7 @@ from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import exit
 from time import time
 
-from fuse import FuseOSError, Operations
+from fuse import FuseOSError, Operations, LoggingMixIn
 
 if not hasattr(__builtins__, 'bytes'):
     bytes = str
@@ -14,7 +15,7 @@ if not hasattr(__builtins__, 'bytes'):
 class PathParseResult(namedtuple("PathParseResult", "file_path dir_name path_list query")):
   pass
 
-class GenbankFuse(Operations):
+class GenbankFuse(LoggingMixIn, Operations):
   def __init__(self, searcher):
     self.searcher = searcher
     self.parsers = {folder: self._parser_builder(folder)
@@ -29,6 +30,7 @@ class GenbankFuse(Operations):
       '{accession}_genomic.gbff.gz',
       '{accession}_genomic.gff.gz'
     ]
+    self.fn = 0
     super(GenbankFuse, self).__init__()
 
   def parse_path(self, path, query=None):
@@ -116,9 +118,25 @@ class GenbankFuse(Operations):
     parse_result = self.parse_path(path)
     if parse_result.file_path:
       return dict(st_mode=(S_IFREG | 0444), st_nlink=1,
-                  st_size=0, st_ctime=time(), st_mtime=time(),
+                  st_size=17, st_ctime=time(), st_mtime=time(),
                   st_atime=time())
     else:
       return dict(st_mode=(S_IFDIR | 0755), st_nlink=2,
                   st_size=0, st_ctime=time(), st_mtime=time(),
                   st_atime=time())
+
+  def getxattr(self, path, name, position=0):
+    return self.getattr(path).get(name, '')
+
+  def listxattr(self, path):
+    return self.getattr(path).keys()
+
+  def open(self, path, flags):
+    self.fn += 1
+    return self.fn
+
+  def read(self, path, size, offset, fh):
+    return "This is some text"
+
+  def statfs(self, path):
+    return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
