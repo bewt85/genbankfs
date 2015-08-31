@@ -111,7 +111,7 @@ class GenbankCache(object):
       thread.start()
     self.warning_files = {
       'queue': create_warning_file(self.root_dir, 'download_queue_warning',
-                                   download_queue_warning.format(max_downloads=self.max_queue)),
+                                   download_queue_warning % dict(max_downloads=self.max_queue)),
       'timeout': create_warning_file(self.root_dir, 'download_timeout_warning', download_timeout_warning),
       'error': create_warning_file(self.root_dir, 'download_error', download_error)
     }
