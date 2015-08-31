@@ -135,7 +135,7 @@ class GenbankFuse(LoggingMixIn, Operations):
     if parse_result.file_path:
       return self.cache.open(parse_result.file_path, flags)
     else:
-      raise ValueError("Path '%s' was not parsable" % path)
+      raise FuseOSError("Path '%s' was not parsable" % path)
 
   def read(self, path, size, offset, fh):
     return self.cache.read(size, offset, fh)
