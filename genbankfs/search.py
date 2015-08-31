@@ -7,14 +7,13 @@ from boltons.strutils import slugify
 class GenbankSearch(object):
   def __init__(self, input_file):
     self.database = pd.read_csv(input_file, delimiter='\t')
-    self.folders = ['accession',
-                    'species_taxid',
+    self.folders = ['species_taxid',
                     'taxid',
                     'organism_name',
                     'genus',
-                    'species']
-    column_map = zip(['# assembly_accession',
-                       'species_taxid',
+                    'species',
+                    'accession']
+    column_map = zip(['species_taxid',
                        'taxid',
                        'organism_name'],
                        self.folders)
@@ -25,6 +24,8 @@ class GenbankSearch(object):
                                         self.database['organism_name'])
     self.database['species_slug'] = map(self._get_species,
                                         self.database['organism_name'])
+    self.database['accession_slug'] = map(self._get_accession,
+                                          self.database['ftp_path'])
 
   def query(self, **terms):
     relevant_terms = {key+'_slug': self._slug(value)
@@ -51,3 +52,6 @@ class GenbankSearch(object):
   def _get_species(self, species_name):
     genus, species = species_name.split(" ", 2)[:2]
     return self._slug("%s_%s" % (genus, species))
+
+  def _get_accession(self, ftp_path):
+    return ftp_path.split('/')[-1]

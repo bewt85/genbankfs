@@ -20,19 +20,28 @@ class GenbankFuse(Operations):
     self.parsers = {folder: self._parser_builder(folder)
                       for folder in self.searcher.folders}
     self.parsers['accession'] = self._parse_accession
+    self.accession_files = [
+      'README.txt',
+      'md5checksums.txt',
+      '{accession}_assembly_stats.txt',
+      '{accession}_assembly_report.txt',
+      '{accession}_genomic.fna.gz',
+      '{accession}_genomic.gbff.gz',
+      '{accession}_genomic.gff.gz'
+    ]
     super(GenbankFuse, self).__init__()
 
   def parse_path(self, path, query=None):
     query = {} if query == None else query
-  
+
     drive_path, base_path = os.path.splitdrive(path)
     path_list = os.path.realpath(base_path).split(os.path.sep)
     assert path_list.pop(0) == '' # first element is ''
-    
+
     def _parse_path(path_list, query):
       if len(path_list) == 0:
         return PathParseResult(None, 'default', [], query)
-  
+
       parser = self.parsers.get(path_list[0], self._unparsable)
       result = parser(path_list, query)
       if len(result.path_list) == 0:
@@ -92,7 +101,10 @@ class GenbankFuse(Operations):
     if parse_result.file_path:
       return [path]
     elif 'accession' in parse_result.query:
-      return ['.', '..', 'README.txt']
+      accession_id = parse_result.query['accession']
+      accession_files = [filename.format(accession=accession_id) for filename
+                         in self.accession_files]
+      return ['.', '..'] + accession_files
     elif parse_result.dir_name == 'default':
       folders = set(self.searcher.folders).difference(parse_result.query.keys())
       return ['.', '..'] + list(folders)
