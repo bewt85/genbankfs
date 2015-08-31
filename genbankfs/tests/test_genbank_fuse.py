@@ -2,7 +2,7 @@
 
 import unittest
 
-from mock import patch
+from mock import patch, MagicMock
 
 from genbankfs import GenbankFuse
 from genbankfs.genbank_fuse import PathParseResult
@@ -12,7 +12,14 @@ def fake_path_join(*args):
 
 class TestParsePath(unittest.TestCase):
   def setUp(self):
-    self.fuse = GenbankFuse(None)
+    searcher = MagicMock()
+    searcher.folders = ['species_taxid',
+                    'taxid',
+                    'organism_name',
+                    'genus',
+                    'species',
+                    'accession']
+    self.fuse = GenbankFuse(searcher)
 
   @patch('genbankfs.genbank_fuse.os.path.join')
   def test_match_accession_happy(self, join_mock):
@@ -58,10 +65,10 @@ class TestParsePath(unittest.TestCase):
     self.assertEqual(parser(['foo', 'bar', 'baz'], {}), expected)
 
   def test_parse_path_single(self):
-#    path = '/accession'
-#    result = self.fuse.parse_path(path, {})
-#    expected = PathParseResult(None, 'accession', [], {})
-#    self.assertEqual(result, expected)
+    path = '/accession'
+    result = self.fuse.parse_path(path, {})
+    expected = PathParseResult(None, 'accession', [], {})
+    self.assertEqual(result, expected)
 
     path = '/taxid'
     result = self.fuse.parse_path(path, {})
