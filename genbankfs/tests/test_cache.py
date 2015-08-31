@@ -113,17 +113,17 @@ class TestParsePath(unittest.TestCase):
     expected = ["This is a fake file"] * 12
     self.assertEqual(contents, expected)
 
-  def test_open_1000(self):
+  def test_open_100(self):
     queue = Queue()
     threads = [Thread(target=self.queue_contents, args=("foo_%s" % i, queue))
-                for i in xrange(1000)]
+                for i in xrange(100)]
     for thread in threads:
       thread.start()
     time.sleep(0.1)
     contents = self.list_contents(queue)
     error_message = genbankfs.cache.download_queue_warning
     error_message = error_message % {'max_downloads': 10}
-    self.assertEqual(contents, [error_message]*988)
+    self.assertEqual(contents, [error_message]*88)
     self.assertEqual(self.cache.download_queue.qsize(), 10)
     self.download_trigger.set()
     for thread in threads:
@@ -137,15 +137,9 @@ class TestParsePath(unittest.TestCase):
     cache_contents = os.listdir(self.temp_dir)
     self.assertEqual(len(cache_contents), 13)
 
-    # expect the 12 downloaded files which the mock doesn't
-    # delete itself plus the warning files
-    download_dir = os.path.join(self.temp_dir, 'tmp')
-    temp_files = os.listdir(download_dir)
-    self.assertEqual(len(temp_files), 12 + len(self.cache.warning_files))
-
   def tearDown(self):
     self.download_trigger.set()
-    #shutil.rmtree(self.temp_dir)
+    shutil.rmtree(self.temp_dir)
     genbankfs.cache.DownloadWithExceptions = self.original_DownloadWithExceptions
 
 if __name__ == '__main__':

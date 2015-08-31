@@ -13,13 +13,14 @@ def fake_path_join(*args):
 class TestParsePath(unittest.TestCase):
   def setUp(self):
     searcher = MagicMock()
+    cache = MagicMock()
     searcher.folders = ['species_taxid',
                     'taxid',
                     'organism_name',
                     'genus',
                     'species',
                     'accession']
-    self.fuse = GenbankFuse(searcher)
+    self.fuse = GenbankFuse(searcher, cache)
 
   @patch('genbankfs.genbank_fuse.os.path.join')
   def test_match_accession_happy(self, join_mock):
