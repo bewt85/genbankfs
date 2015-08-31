@@ -1,14 +1,17 @@
 import hashlib
+import logging
 import os
 import shutil
 import socket
 import tempfile
 import urllib
 
-from urlparse import urlparse
 from Queue import Queue, Full, Empty
+from stat import S_IFDIR, S_IFLNK, S_IFREG
 from StringIO import StringIO
 from threading import Lock, Thread, Event
+from time import time
+from urlparse import urlparse
 
 # Set download timeout
 socket.setdefaulttimeout(600)
@@ -37,6 +40,7 @@ class DownloadWithExceptions(urllib.FancyURLopener):
                                               suffix='.tmp',
                                               dir=temp_dir,
                                               delete=True)
+    logging.info("Downloading %s to %s" % (url, temp_file.name))
     (filename, status) = self.retrieve(url, temp_file.name)
     return (temp_file, status)
 
@@ -143,6 +147,20 @@ class GenbankCache(object):
     else:
       download_fn = self.wait_for_download(cache_path, flags, download_complete_event)
     return download_fn
+
+  def getattr(self, path):
+    cache_path = os.path.join(self.root_dir, path)
+    self._check_in_root(cache_path)
+    try:
+      st = os.lstat(cache_path)
+      return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
+                                                      'st_gid', 'st_mode',
+                                                      'st_mtime', 'st_nlink',
+                                                      'st_size', 'st_uid'))
+    except OSError:
+      return dict(st_mode=(S_IFREG | 0444), st_nlink=1,
+                  st_size=0, st_ctime=time(),
+                  st_mtime=time(), st_atime=time())
 
   def read(self, size, offset, fh):
     with self.rwlock:
