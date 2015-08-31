@@ -55,3 +55,11 @@ class GenbankSearch(object):
 
   def _get_accession(self, ftp_path):
     return ftp_path.split('/')[-1]
+
+  def build_url_lookup(self):
+    accession_data = self.database[['accession_slug', 'ftp_path']]
+    accession_map = dict(accession_data.values)
+    def url_lookup(path):
+      accession, filename = path.split('/')
+      return "/".join([accession_map[accession], filename])
+    return url_lookup
