@@ -137,7 +137,7 @@ class GenbankCache(object):
     try:
       origin_path = self.lookup(path)
     except:
-      raise IOError('%s not found and not available for download') % path
+      raise IOError('%s not found and not available for download' % path)
     download_lock, download_complete_event = self.download_locks.setdefault(origin_path, (Lock(), Event()))
     if download_lock.acquire(False):
       download_fn = self.download(cache_path, origin_path, flags)
@@ -171,6 +171,7 @@ class GenbankCache(object):
     """Waits for another thread to finish downloading a file
 
     Returns an error file if this takes too long"""
+    logging.info("Awaiting download of %s" % cache_path)
     download_complete_event.wait(timeout=timeout)
     try:
       return os.open(cache_path, flags)
@@ -187,13 +188,16 @@ class GenbankCache(object):
     a different error."""
     result = Queue()
     try:
+      logging.info("Adding %s to download queue of length %s" % (origin_path,                                                                 self.download_queue.qsize()))
       self.download_queue.put_nowait((cache_path, origin_path, flags, result))
       output_file = result.get(timeout=timeout)
-      return output_file
     except Full:
-      return os.open(self.warning_files['queue'], flags)
+      output_file = os.open(self.warning_files['queue'], flags)
     except Empty:
-      return os.open(self.warning_files['timeout'], flags)
+      ouput_file = os.open(self.warning_files['timeout'], flags)
+    logging.info("Finished downloading %s; queue length is %s" % (origin_path,
+                                                                  self.download_queue.qsize()))
+    return output_file
 
   def _download_queued(self, queue):
     downloader = DownloadWithExceptions()
