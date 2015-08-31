@@ -16,8 +16,9 @@ class PathParseResult(namedtuple("PathParseResult", "file_path dir_name path_lis
   pass
 
 class GenbankFuse(LoggingMixIn, Operations):
-  def __init__(self, searcher):
+  def __init__(self, searcher, cache):
     self.searcher = searcher
+    self.cache = cache
     self.parsers = {folder: self._parser_builder(folder)
                       for folder in self.searcher.folders}
     self.parsers['accession'] = self._parse_accession
@@ -117,9 +118,7 @@ class GenbankFuse(LoggingMixIn, Operations):
   def getattr(self, path, fh=None):
     parse_result = self.parse_path(path)
     if parse_result.file_path:
-      return dict(st_mode=(S_IFREG | 0444), st_nlink=1,
-                  st_size=17, st_ctime=time(), st_mtime=time(),
-                  st_atime=time())
+      return self.cache.getattr(parse_result.file_path)
     else:
       return dict(st_mode=(S_IFDIR | 0755), st_nlink=2,
                   st_size=0, st_ctime=time(), st_mtime=time(),
@@ -132,11 +131,14 @@ class GenbankFuse(LoggingMixIn, Operations):
     return self.getattr(path).keys()
 
   def open(self, path, flags):
-    self.fn += 1
-    return self.fn
+    parse_result = self.parse_path(path)
+    if parse_result.file_path:
+      return self.cache.open(parse_result.file_path, flags)
+    else:
+      raise ValueError("Path '%s' was not parsable" % path)
 
   def read(self, path, size, offset, fh):
-    return "This is some text"
+    return self.cache.read(size, offset, fh)
 
   def statfs(self, path):
     return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
