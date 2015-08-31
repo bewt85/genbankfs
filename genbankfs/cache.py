@@ -159,7 +159,7 @@ class GenbankCache(object):
                                                       'st_size', 'st_uid'))
     except OSError:
       return dict(st_mode=(S_IFREG | 0444), st_nlink=1,
-                  st_size=0, st_ctime=time(),
+                  st_size=10**12, st_ctime=time(),
                   st_mtime=time(), st_atime=time())
 
   def read(self, size, offset, fh):
