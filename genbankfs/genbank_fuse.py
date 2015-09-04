@@ -87,10 +87,15 @@ class GenbankFuse(LoggingMixIn, Operations):
     else:
       return PathParseResult(None, 'default', [], query)
 
+  def _is_accession_file(self, accession, filename):
+    accession_files = [f.format(accession=accession) for f in self.accession_files]
+    return filename in accession_files
+
   def _match_accession(self, path_list, query):
     try:
       match_type, accession, filename = path_list[-3:]
-      if match_type == 'accession':
+      if match_type == 'accession' and self._is_accession_file(accession,
+                                                               filename):
         file_path = os.path.join(accession, filename)
         query = dict(query)
         query['accession'] = accession

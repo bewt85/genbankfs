@@ -218,7 +218,7 @@ class GenbankCache(object):
         urllib.urlcleanup()
         download_tempfile, status = downloader.retrieve_tempfile(origin_path,
                                                                  download_staging_dir)
-      except DownloadError:
+      except (DownloadError, IOError):
         result.put(os.open(self.warning_files['error'], flags))
         queue.task_done()
         del download_tempfile
