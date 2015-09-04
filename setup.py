@@ -5,7 +5,7 @@ import genbankfs
 setup(
   name='genbankfs',
   version=genbankfs.__version__,
-  licence='GPL v3',
+  licence='MIT',
   install_requires=[
     'boltons>=15.0.0',
     'fusepy>=2.0.2',
