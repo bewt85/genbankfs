@@ -1,5 +1,7 @@
 # Genbankfs
 
+[![Build Status](https://travis-ci.org/bewt85/genbankfs.svg?branch=master)](https://travis-ci.org/bewt85/genbankfs)
+
 Genbank is a FUSE based filesystem which lets you navigate Bacteria in
 Genbank as if you'd already downloaded them onto your laptop / server.
 
