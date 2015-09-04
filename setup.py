@@ -10,7 +10,7 @@ setup(
     'boltons>=15.0.0',
     'fusepy>=2.0.2',
     'numexpr>=2.4.3',
-    'numpy>=1.9.2',
+    'numpy>=1.9.1',
     'pandas>=0.16.2'
   ],
   test_suite='genbankfs.tests',
