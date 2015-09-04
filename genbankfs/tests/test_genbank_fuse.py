@@ -25,9 +25,9 @@ class TestParsePath(unittest.TestCase):
   @patch('genbankfs.genbank_fuse.os.path.join')
   def test_match_accession_happy(self, join_mock):
     join_mock.side_effect = fake_path_join
-    path_list = '/accession/foo/bar.txt'.split('/')
+    path_list = '/accession/foo/README.txt'.split('/')
     result = self.fuse._match_accession(path_list, {})
-    self.assertEqual(result.file_path, 'foo/bar.txt')
+    self.assertEqual(result.file_path, 'foo/README.txt')
     self.assertEqual(result.dir_name, None)
     self.assertEqual(result.path_list, [])
     self.assertEqual(result.query, {'accession': 'foo'})
@@ -35,14 +35,14 @@ class TestParsePath(unittest.TestCase):
   @patch('genbankfs.genbank_fuse.os.path.join')
   def test_match_accession_unhappy(self, join_mock):
     join_mock.side_effect = fake_path_join
-    path_list = '/foo/bar/baz.txt'.split('/')
+    path_list = '/foo/bar/README.txt'.split('/')
     result = self.fuse._match_accession(path_list, {})
     self.assertEqual(result.file_path, None)
     self.assertEqual(result.dir_name, 'default')
     self.assertEqual(result.path_list, [])
     self.assertEqual(result.query, {})
 
-    path_list = '/bar.txt'.split('/')
+    path_list = '/README.txt'.split('/')
     result = self.fuse._match_accession(path_list, {})
     self.assertEqual(result.file_path, None)
     self.assertEqual(result.dir_name, 'default')
