@@ -1,10 +1,10 @@
 from setuptools import setup
 
-import genbankfs
+__version__ = '0.1.0'
 
 setup(
   name='genbankfs',
-  version=genbankfs.__version__,
+  version=__version__,
   licence='MIT',
   install_requires=[
     'boltons>=15.0.0',
