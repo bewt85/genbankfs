@@ -6,4 +6,5 @@ addons:
   apt:
     packages:
     - libfuse2
+install: "python setup.py install"
 script: "python setup.py test"
